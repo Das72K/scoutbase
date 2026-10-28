@@ -52,13 +52,14 @@ prove each restriction by attempting the forbidden action and expecting PostgreS
 
 ```
 db/         Alembic migrations (explicit SQL via op.execute)
-pipeline/   ingestion jobs (raw layer)            — not started
+pipeline/   ingestion jobs (raw layer): `scoutbase fetch|ingest <provider>`
+config/     provider sources (pinned commit, selected seasons)
 dbt/        staging → core → marts models         — not started
 api/        FastAPI backend                       — not started
 web/        frontend                              — not started
-tests/      pytest suite
+tests/      pytest suite (+ small provider fixtures, no network)
 scripts/    helper scripts
-docs/       problem statement, data model, ADRs
+docs/       problem statement, data model, ADRs, measured metrics
 data/       local provider data (gitignored)
 ```
 
@@ -69,9 +70,15 @@ Requirements: Docker, [uv](https://docs.astral.sh/uv/), GNU Make.
 ```bash
 cp .env.example .env    # then change the passwords
 make up                 # Postgres 16 + pgvector on localhost:5433
-make migrate            # extensions, schemas, roles
-make test               # foundation tests
+make migrate            # extensions, schemas, roles, raw tables
+make fetch-statsbomb    # sparse checkout of the configured seasons into data/sources
+make ingest             # load them into raw (re-runs skip unchanged files)
+make test               # full test suite
 ```
+
+`make test` includes a migration round-trip (downgrade to base, upgrade to head), which drops
+the raw tables: run `make ingest` again afterwards. Volumes and timings of a full StatsBomb
+ingest are in [`docs/metrics.md`](docs/metrics.md).
 
 Other targets: `make psql`, `make downgrade` (one step; `REV=base` for all), `make down`,
 `make reset` (drop the volume and rebuild from scratch).
@@ -80,7 +87,7 @@ Other targets: `make psql`, `make downgrade` (one step; `REV=base` for all), `ma
 
 - [x] Repository scaffold, Docker Compose, CI
 - [x] Database foundation: extensions, layer schemas, roles and grants
-- [ ] Raw ingestion: StatsBomb Open Data
+- [x] Raw ingestion: StatsBomb Open Data (World Cup 2022, Euro 2024, Bundesliga 2023/24)
 - [ ] Raw ingestion: Wyscout public dataset
 - [ ] dbt staging models
 - [ ] Canonical core model + crosswalks (entity resolution)
