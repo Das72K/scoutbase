@@ -60,7 +60,7 @@ web/        frontend                              — not started
 tests/      pytest suite (+ small provider fixtures, no network)
 scripts/    helper scripts
 docs/       problem statement, data model, ADRs, measured metrics
-data/       local provider data (gitignored)
+data/       fallback provider data directory (gitignored); default is ~/.local/share/scoutbase
 ```
 
 ## Quickstart
@@ -71,14 +71,18 @@ Requirements: Docker, [uv](https://docs.astral.sh/uv/), GNU Make.
 cp .env.example .env    # then change the passwords
 make up                 # Postgres 16 + pgvector on localhost:5433
 make migrate            # extensions, schemas, roles, raw tables
-make fetch-statsbomb    # sparse checkout of the configured seasons into data/sources
-make ingest             # load them into raw (re-runs skip unchanged files)
-make test               # full test suite
+make fetch-statsbomb    # sparse checkout of the configured seasons into $SCOUTBASE_DATA_DIR
+make ingest             # load them into raw (unchanged files are skipped; VERIFY=1 hashes all)
+make test               # full test suite, in a throwaway scoutbase_test database
 ```
 
-`make test` includes a migration round-trip (downgrade to base, upgrade to head), which drops
-the raw tables: run `make ingest` again afterwards. Volumes and timings of a full StatsBomb
-ingest are in [`docs/metrics.md`](docs/metrics.md).
+Provider data goes to `SCOUTBASE_DATA_DIR` (default `~/.local/share/scoutbase`). Under WSL, keep
+it on the Linux filesystem: reading from `/mnt/<drive>` is several times slower.
+
+`make test` never touches the working database. It creates and migrates `scoutbase_test`
+(override with `SCOUTBASE_TEST_DB`), drops it at the end, and fails if the row counts in the
+working database's `raw` tables changed. Volumes and timings of a full StatsBomb ingest are in
+[`docs/metrics.md`](docs/metrics.md).
 
 Other targets: `make psql`, `make downgrade` (one step; `REV=base` for all), `make down`,
 `make reset` (drop the volume and rebuild from scratch).
