@@ -1,8 +1,8 @@
 """StatsBomb ingest tests, run on the small files in tests/fixtures (never the network).
 
 Each test copies the fixtures into a uniquely named directory. The directory name is the
-first segment of source_path, so the test's rows never collide with real data in raw and
-can be removed by prefix afterwards.
+first segment of source_path, so tests never see each other's rows and each one can remove
+its own by prefix afterwards.
 """
 
 import json

@@ -5,6 +5,7 @@ Each one is paired with the allowed action on the same table, so a test cannot p
 just because the table or schema is missing.
 """
 
+import os
 from pathlib import Path
 
 import psycopg
@@ -139,17 +140,36 @@ def test_app_cannot_modify_audit(owner, login_as, table_name, statement):
 # --- migrations ----------------------------------------------------------------------------
 
 
+def role_dependencies(conn, *, this_db: bool) -> int:
+    """pg_shdepend rows (objects, grants, default privileges) referring to scoutbase roles."""
+    op = "=" if this_db else "<>"
+    return conn.execute(f"""
+        SELECT count(*) FROM pg_shdepend d
+          JOIN pg_roles r ON r.oid = d.refobjid AND d.refclassid = 'pg_authid'::regclass
+         WHERE r.rolname LIKE 'scoutbase\\_%'
+           AND d.dbid {op} (SELECT oid FROM pg_database WHERE datname = current_database())
+    """).fetchone()[0]
+
+
 def test_downgrade_to_base_then_upgrade_to_head(owner):
+    # The round-trip drops everything: only ever run it on the throwaway test database.
+    current_db = owner.execute("SELECT current_database()").fetchone()[0]
+    assert current_db == os.environ["POSTGRES_DB"] and current_db.endswith("_test")
+    roles_used_elsewhere = role_dependencies(owner, this_db=False) > 0
     cfg = Config(str(ROOT / "db" / "alembic.ini"))
 
     command.downgrade(cfg, "base")
     assert owner.execute("SELECT to_regnamespace('marts')").fetchone()[0] is None
     assert owner.execute(
-        "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'scoutbase\\_%'"
-    ).fetchone()[0] == 0
-    assert owner.execute(
         "SELECT count(*) FROM pg_extension WHERE extname = ANY(%s)", [list(EXTENSIONS)]
     ).fetchone()[0] == 0
+    # No grant, default privilege or object in this database refers to the roles any more ...
+    assert role_dependencies(owner, this_db=True) == 0
+    # ... and the cluster-wide roles are dropped unless another database (the working one) uses them.
+    remaining = owner.execute(
+        "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'scoutbase\\_%'"
+    ).fetchone()[0]
+    assert remaining == (6 if roles_used_elsewhere else 0)
 
     command.upgrade(cfg, "head")
     rows = owner.execute("SELECT schema_name FROM information_schema.schemata").fetchall()
