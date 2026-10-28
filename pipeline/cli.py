@@ -4,21 +4,22 @@ import argparse
 import sys
 import time
 
-from pipeline.config import SOURCES_DIR, connect_pipeline, load_sources
+from pipeline.config import connect_pipeline, load_sources, sources_dir
 from pipeline.ingest import statsbomb as ingest_statsbomb
 from pipeline.sources import statsbomb as source_statsbomb
 
 
 def fetch_statsbomb() -> int:
     source = load_sources()["statsbomb"]
-    match_ids = source_statsbomb.fetch(source, SOURCES_DIR / "statsbomb")
+    dest = sources_dir() / "statsbomb"
+    match_ids = source_statsbomb.fetch(source, dest)
     print(f"statsbomb @ {source['commit'][:12]}: {len(source['competitions'])} seasons, "
-          f"{len(match_ids)} matches -> {SOURCES_DIR / 'statsbomb'}")
+          f"{len(match_ids)} matches -> {dest}")
     return 0
 
 
 def ingest_statsbomb_cmd() -> int:
-    root = SOURCES_DIR / "statsbomb"
+    root = sources_dir() / "statsbomb"
     if not (root / ".git").exists():
         print(f"{root} not found: run `make fetch-statsbomb` first", file=sys.stderr)
         return 1
@@ -26,7 +27,7 @@ def ingest_statsbomb_cmd() -> int:
     with connect_pipeline() as conn:
         run = ingest_statsbomb.ingest(conn, root, source_statsbomb.checked_out_commit(root))
     elapsed = time.perf_counter() - started
-    print(f"run {run.run_id} {run.status} in {elapsed:.1f}s: {run.files_seen} files seen, "
+    print(f"run {run.run_id} {run.status} in {elapsed:.1f}s ({root}): {run.files_seen} files seen, "
           f"{run.files_loaded} loaded, {run.files_replaced} replaced, {run.files_skipped} skipped, "
           f"{run.rows_loaded} rows loaded")
     if run.error:
