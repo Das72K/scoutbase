@@ -45,9 +45,22 @@ that nobody models before committing to it.
 
 | Use | Sources |
 |---|---|
-| Course + portfolio | StatsBomb Open Data (non-commercial, attribution + logo), Wyscout public dataset (Pappalardo et al., cite the paper; verify licence), Metrica / SkillCorner samples for tracking |
+| Course + portfolio | StatsBomb Open Data (non-commercial, attribution + logo), Wyscout public dataset (non-commercial use only per the SoBigData catalogue; cite both Pappalardo et al. 2019 papers, see below), Metrica / SkillCorner samples for tracking |
 | Business data that isn't public | Synthetic generator: contracts, wages, market values, scout reports |
 | Commercial product | Client's own video (our tracking pipeline), client uploads (CSV), client's own licensed provider API ("bring your own data") |
+
+**Licensing.** Both event sources are **non-commercial only**: StatsBomb Open Data by its own
+terms (credit StatsBomb + show its logo), and the Wyscout public dataset as listed in the
+SoBigData catalogue. They are fine for the course and the portfolio, but a commercial SCOUTBASE
+must run on client-owned or client-licensed data (third row above).
+
+Wyscout citations (both are required):
+
+- Pappalardo, L. et al. (2019). *A public data set of spatio-temporal match events in soccer
+  competitions.* Scientific Data, 6, 236. https://doi.org/10.1038/s41597-019-0247-7
+- Pappalardo, L. et al. (2019). *PlayeRank: Data-driven Performance Evaluation and Player Ranking
+  in Soccer via a Machine Learning Approach.* ACM TIST, 10(5), Article 59.
+  https://doi.org/10.1145/3343172
 
 ## Success criteria (measurable)
 

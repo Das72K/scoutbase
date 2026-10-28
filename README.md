@@ -102,13 +102,18 @@ data source and display the StatsBomb logo.
 <!-- TODO: add the official StatsBomb logo from the open-data repository, e.g.
      <img src="docs/assets/statsbomb-logo.png" alt="StatsBomb" width="200"> -->
 
-**Wyscout public dataset.** Soccer event data released by Wyscout and published with:
+**Wyscout public dataset.** Soccer event data released by Wyscout. The dataset is listed in
+the SoBigData catalogue for **non-commercial use only** — the same restriction as StatsBomb Open
+Data. Any work using it must cite both papers:
 
 > Pappalardo, L., Cintia, P., Rossi, A., Massucco, E., Ferragina, P., Pedreschi, D., & Giannotti, F. (2019).
 > *A public data set of spatio-temporal match events in soccer competitions.*
 > Scientific Data, 6, 236. https://doi.org/10.1038/s41597-019-0247-7
 
-Please verify the dataset licence on its figshare page before redistributing any derived data.
+> Pappalardo, L., Cintia, P., Ferragina, P., Massucco, E., Pedreschi, D., & Giannotti, F. (2019).
+> *PlayeRank: Data-driven Performance Evaluation and Player Ranking in Soccer via a Machine
+> Learning Approach.* ACM Transactions on Intelligent Systems and Technology, 10(5), Article 59.
+> https://doi.org/10.1145/3343172
 
 ## License
 
