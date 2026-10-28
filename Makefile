@@ -25,8 +25,8 @@ psql:  ## Open psql inside the db container as the owner
 fetch-statsbomb:  ## Sparse-checkout the StatsBomb seasons in config/sources.yaml into $SCOUTBASE_DATA_DIR/sources
 	uv run scoutbase fetch statsbomb
 
-ingest:  ## Load fetched provider files into the raw schema (unchanged files are skipped)
-	uv run scoutbase ingest statsbomb
+ingest:  ## Load fetched provider files into raw (unchanged files are skipped; VERIFY=1 hashes every file)
+	uv run scoutbase ingest statsbomb $(if $(VERIFY),--verify)
 
 test:  ## Run the test suite against the running database
 	uv run pytest -v
