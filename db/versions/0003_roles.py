@@ -10,6 +10,10 @@ Design:
   * scoutbase_pipeline_user runs as its group (ALTER ROLE ... SET role), so tables built by
     dbt are owned by scoutbase_pipeline and the default privileges below apply to them.
   * Tables in app/audit are created by migrations, i.e. by the migration owner (current_user).
+  * Roles are cluster-wide, but grants live in each database. Several SCOUTBASE databases can
+    share one cluster (the working database and the test suite's scoutbase_test), so upgrade
+    creates the roles only if they are missing, and downgrade drops them only once no other
+    database depends on them.
 
 Revision ID: 0003
 Revises: 0002
@@ -42,10 +46,17 @@ def upgrade() -> None:
     """)
 
     # --- 2. Group roles (privileges) and login users (members) ---------------------------
+    # An existing role was created by another SCOUTBASE database on this cluster: reuse it.
     for group in GROUPS:
         op.execute(f"""
-            CREATE ROLE {group} NOLOGIN;
-            CREATE ROLE {group}_user LOGIN PASSWORD {_password(group)} IN ROLE {group};
+            DO $roles$ BEGIN
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{group}') THEN
+                    CREATE ROLE {group} NOLOGIN;
+                END IF;
+                IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{group}_user') THEN
+                    CREATE ROLE {group}_user LOGIN PASSWORD {_password(group)} IN ROLE {group};
+                END IF;
+            END $roles$;
         """)
     op.execute("""
         ALTER ROLE scoutbase_pipeline_user SET role = 'scoutbase_pipeline';
@@ -91,14 +102,28 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # DROP OWNED BY revokes every grant and default privilege that mentions the role in this
-    # database and drops objects it owns (e.g. dbt tables), after which the role can be dropped.
-    for group in reversed(GROUPS):
-        op.execute(f"""
-            DROP OWNED BY {group}_user, {group};
-            DROP ROLE {group}_user;
-            DROP ROLE {group};
-        """)
+    # DROP OWNED BY revokes every grant and default privilege that mentions the roles in this
+    # database and drops objects they own (e.g. dbt tables). It never touches other databases.
+    names = [name for g in reversed(GROUPS) for name in (f"{g}_user", g)]
+    roles = ", ".join(names)
+    op.execute(f"DROP OWNED BY {roles};")
+
+    # pg_shdepend records, per database, every object and privilege that refers to a role. If
+    # another database still has any, the roles stay: dropping them would fail (or break it).
+    op.execute(f"""
+        DO $roles$ BEGIN
+            IF NOT EXISTS (
+                SELECT FROM pg_shdepend d
+                  JOIN pg_roles r ON r.oid = d.refobjid AND d.refclassid = 'pg_authid'::regclass
+                 WHERE r.rolname = ANY (ARRAY[{", ".join(f"'{n}'" for n in names)}])
+                   AND d.dbid <> (SELECT oid FROM pg_database WHERE datname = current_database())
+            ) THEN
+                DROP ROLE {roles};
+            ELSE
+                RAISE NOTICE 'scoutbase roles kept: another database on this cluster still uses them';
+            END IF;
+        END $roles$;
+    """)
 
     # Not re-granted on purpose: since PostgreSQL 15, PUBLIC has no CREATE on schema public
     # by default, so leaving it revoked *is* the pre-0003 state on PG16.
