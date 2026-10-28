@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  database:
+    runs-on: ubuntu-latest
+
+    # Throwaway CI-only credentials; nothing here is a real secret.
+    env:
+      POSTGRES_USER: scoutbase
+      POSTGRES_PASSWORD: ci-owner
+      POSTGRES_DB: scoutbase
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5433"
+      SCOUTBASE_PIPELINE_PASSWORD: ci-pipeline
+      SCOUTBASE_APP_PASSWORD: ci-app
+      SCOUTBASE_READONLY_PASSWORD: ci-readonly
+
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: scoutbase
+          POSTGRES_PASSWORD: ci-owner
+          POSTGRES_DB: scoutbase
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U scoutbase -d scoutbase"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Run migrations
+        run: uv run alembic -c db/alembic.ini upgrade head
+
+      - name: Run tests
+        run: uv run pytest -v
