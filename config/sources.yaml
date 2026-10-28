@@ -1,0 +1,12 @@
+# Provider sources for the raw layer. The ingest only reads what `make fetch-statsbomb`
+# checked out, so this file is the single place that decides which data enters SCOUTBASE.
+
+statsbomb:
+  repo: https://github.com/statsbomb/open-data.git
+  # Pinned so every fetch is reproducible; bump deliberately (and re-ingest) to pick up fixes.
+  commit: 4b73468fc5b0f1950f9f66fada70ad3a4f9327cb
+  # IDs looked up in data/competitions.json at the pinned commit.
+  competitions:
+    - { competition_id: 43, season_id: 106, name: FIFA World Cup 2022 }
+    - { competition_id: 55, season_id: 282, name: UEFA Euro 2024 }
+    - { competition_id: 9,  season_id: 281, name: 1. Bundesliga 2023/2024 }

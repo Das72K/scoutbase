@@ -5,7 +5,7 @@ export
 
 ALEMBIC := uv run alembic -c db/alembic.ini
 
-.PHONY: up down migrate downgrade psql test reset
+.PHONY: up down migrate downgrade psql test reset fetch-statsbomb
 
 up:  ## Start Postgres and wait until it is healthy
 	docker compose up -d --wait db
@@ -21,6 +21,9 @@ downgrade:  ## Roll back one migration (make downgrade REV=base for all)
 
 psql:  ## Open psql inside the db container as the owner
 	docker compose exec db psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+fetch-statsbomb:  ## Sparse-checkout the StatsBomb seasons in config/sources.yaml into data/sources
+	uv run scoutbase fetch statsbomb
 
 test:  ## Run the test suite against the running database
 	uv run pytest -v
