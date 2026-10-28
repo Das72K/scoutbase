@@ -1,0 +1,5 @@
+[
+  {"id": "e1002-1", "index": 1, "period": 1, "minute": 0, "second": 0, "type": {"id": 35, "name": "Starting XI"}},
+  {"id": "e1002-2", "index": 2, "period": 1, "minute": 0, "second": 0, "type": {"id": 18, "name": "Half Start"}},
+  {"id": "e1002-3", "index": 3, "period": 1, "minute": 0, "second": 2, "type": {"id": 30, "name": "Pass"}}
+]

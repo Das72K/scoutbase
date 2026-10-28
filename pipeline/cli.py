@@ -1,9 +1,11 @@
-"""`scoutbase` command line: fetch provider data."""
+"""`scoutbase` command line: fetch provider data and ingest it into raw."""
 
 import argparse
 import sys
+import time
 
-from pipeline.config import SOURCES_DIR, load_sources
+from pipeline.config import SOURCES_DIR, connect_pipeline, load_sources
+from pipeline.ingest import statsbomb as ingest_statsbomb
 from pipeline.sources import statsbomb as source_statsbomb
 
 
@@ -15,8 +17,26 @@ def fetch_statsbomb() -> int:
     return 0
 
 
+def ingest_statsbomb_cmd() -> int:
+    root = SOURCES_DIR / "statsbomb"
+    if not (root / ".git").exists():
+        print(f"{root} not found: run `make fetch-statsbomb` first", file=sys.stderr)
+        return 1
+    started = time.perf_counter()
+    with connect_pipeline() as conn:
+        run = ingest_statsbomb.ingest(conn, root, source_statsbomb.checked_out_commit(root))
+    elapsed = time.perf_counter() - started
+    print(f"run {run.run_id} {run.status} in {elapsed:.1f}s: {run.files_seen} files seen, "
+          f"{run.files_loaded} loaded, {run.files_replaced} replaced, {run.files_skipped} skipped, "
+          f"{run.rows_loaded} rows loaded")
+    if run.error:
+        print(f"error: {run.error}", file=sys.stderr)
+    return 0 if run.status == "succeeded" else 1
+
+
 COMMANDS = {
     ("fetch", "statsbomb"): fetch_statsbomb,
+    ("ingest", "statsbomb"): ingest_statsbomb_cmd,
 }
 
 
